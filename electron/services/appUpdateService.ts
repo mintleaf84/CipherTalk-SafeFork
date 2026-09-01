@@ -137,17 +137,7 @@ async function fetchManifestFromUrl(url: string): Promise<ForceUpdateManifest | 
 }
 
 async function resolveForceUpdateManifest(): Promise<ManifestLookupResult> {
-  const r2Url = `${R2_UPDATE_BASE_URL.replace(/\/+$/, '')}/force-update.json`
-  const r2Manifest = await fetchManifestFromUrl(r2Url)
-  if (r2Manifest) {
-    return { manifest: r2Manifest, source: 'r2' }
-  }
-
-  const githubManifest = await fetchManifestFromUrl(GITHUB_FORCE_UPDATE_URL)
-  if (githubManifest) {
-    return { manifest: githubManifest, source: 'github' }
-  }
-
+  // 强制更新已停用：不再从 R2 / GitHub 拉取 force-update.json，客户端永不强制升级
   return { manifest: null, source: 'none' }
 }
 
