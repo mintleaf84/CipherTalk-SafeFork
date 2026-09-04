@@ -145,21 +145,13 @@ export class WcdbCore {
       this.wcdbSetClientInfo = tryBind('int32 wcdb_set_client_info(const char* applicationId, const char* clientType, const char* appVersion)')
       this.wcdbCheckLicense = tryBind('int32 wcdb_check_license()')
       this.wcdbSetAppVersion = tryBind('int32 wcdb_set_app_version(const char* version)')
-      // [CTF] License & version check bypassed
-      // const setVersionResult = this.wcdbSetClientInfo
-      //   ? this.wcdbSetClientInfo('ciphertalk', 'desktop', this.appVersion)
-      //   : this.wcdbSetAppVersion
-      //     ? this.wcdbSetAppVersion(this.appVersion)
-      //     : 0
-      // if (setVersionResult !== 0) {
-      //   return { success: false, error: this.mapStatusCode(setVersionResult) }
-      // }
-      // if (this.wcdbCheckLicense) {
-      //   const licenseResult = this.wcdbCheckLicense()
-      //   if (licenseResult !== 0) {
-      //     return { success: false, error: this.mapStatusCode(licenseResult) }
-      //   }
-      // }
+      // [CTF] Set client info (keep) but skip return check & license validation
+      if (this.wcdbSetClientInfo) {
+        try { this.wcdbSetClientInfo('ciphertalk', 'desktop', this.appVersion) } catch {}
+      } else if (this.wcdbSetAppVersion) {
+        try { this.wcdbSetAppVersion(this.appVersion) } catch {}
+      }
+      // License check bypassed — wcdb_check_license() patched in DLL to return 0
       const initResult = this.wcdbInit()
       if (initResult !== 0) {
         return { success: false, error: this.mapStatusCode(initResult) }
