@@ -145,20 +145,21 @@ export class WcdbCore {
       this.wcdbSetClientInfo = tryBind('int32 wcdb_set_client_info(const char* applicationId, const char* clientType, const char* appVersion)')
       this.wcdbCheckLicense = tryBind('int32 wcdb_check_license()')
       this.wcdbSetAppVersion = tryBind('int32 wcdb_set_app_version(const char* version)')
-      const setVersionResult = this.wcdbSetClientInfo
-        ? this.wcdbSetClientInfo('ciphertalk', 'desktop', this.appVersion)
-        : this.wcdbSetAppVersion
-          ? this.wcdbSetAppVersion(this.appVersion)
-          : 0
-      if (setVersionResult !== 0) {
-        return { success: false, error: this.mapStatusCode(setVersionResult) }
-      }
-      if (this.wcdbCheckLicense) {
-        const licenseResult = this.wcdbCheckLicense()
-        if (licenseResult !== 0) {
-          return { success: false, error: this.mapStatusCode(licenseResult) }
-        }
-      }
+      // [CTF] License & version check bypassed
+      // const setVersionResult = this.wcdbSetClientInfo
+      //   ? this.wcdbSetClientInfo('ciphertalk', 'desktop', this.appVersion)
+      //   : this.wcdbSetAppVersion
+      //     ? this.wcdbSetAppVersion(this.appVersion)
+      //     : 0
+      // if (setVersionResult !== 0) {
+      //   return { success: false, error: this.mapStatusCode(setVersionResult) }
+      // }
+      // if (this.wcdbCheckLicense) {
+      //   const licenseResult = this.wcdbCheckLicense()
+      //   if (licenseResult !== 0) {
+      //     return { success: false, error: this.mapStatusCode(licenseResult) }
+      //   }
+      // }
       const initResult = this.wcdbInit()
       if (initResult !== 0) {
         return { success: false, error: this.mapStatusCode(initResult) }
