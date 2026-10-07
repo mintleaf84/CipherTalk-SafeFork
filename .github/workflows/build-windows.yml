@@ -1,0 +1,85 @@
+name: Build Windows Installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: '构建后是否发布为 GitHub Release（需配置 GH_TOKEN，默认仅产出安装包）'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-windows:
+    name: 构建 Windows 安装包
+    runs-on: windows-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          cache: npm
+
+      - name: 读取版本号
+        id: version
+        shell: pwsh
+        run: |
+          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          "version=$($pkg.version)" >> $env:GITHUB_OUTPUT
+
+      - name: 安装依赖
+        run: npm ci --ignore-scripts
+
+      - name: 重建原生模块
+        run: npx electron-rebuild
+
+      - name: 安装 ffmpeg-static 二进制
+        run: node node_modules/ffmpeg-static/install.js
+
+      - name: 构建 Windows 应用
+        run: npm run build:win
+
+      - name: 校验构建产物
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $installer = "release/CipherTalk-$version-Setup.exe"
+          if (-not (Test-Path $installer)) {
+            Write-Error "安装包未找到: $installer"
+            exit 1
+          }
+          Write-Host "安装包就绪: $installer"
+          Get-Item $installer | Select-Object Name, Length
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: ciphertalk-windows-${{ steps.version.outputs.version }}
+          path: |
+            release/CipherTalk-${{ steps.version.outputs.version }}-Setup.exe
+            release/latest.yml
+          if-no-files-found: error
+
+      - name: 发布 GitHub Release
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release == true && env.GH_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $installer = "release/CipherTalk-$version-Setup.exe"
+          $tag = "v$version"
+          gh release create $tag $installer --title "CipherTalk v$version" --notes "Windows 安装包 v$version" --latest
